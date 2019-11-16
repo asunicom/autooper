@@ -9,18 +9,24 @@ import java.util.Random;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.annotation.TargetApi;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Handler;
+import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
+
+import com.madq.autooper.App;
 import com.madq.autooper.util.ToastUtil;
 
 public class VideoAccessibilityService extends AccessibilityService {
-    private final String TAG = getClass().getName();
+    private final static String TAG = "VideoAccessibilityService";
     Handler handler = new Handler();
     public static VideoAccessibilityService mService;
     int height = 1920;
@@ -44,6 +50,7 @@ public class VideoAccessibilityService extends AccessibilityService {
         Log.e("madq", "onServiceConnected");
         mService = this;
     }
+
 
     private Toast mToast;
 
@@ -153,10 +160,23 @@ public class VideoAccessibilityService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
-        ToastUtil.toast("(；′⌒`)\r\n红包功能被迫中断");
+        ToastUtil.toast("(；′⌒`)\r\n快手自动刷功能被迫中断");
         mService = null;
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mService = null;
+
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        mService = null;
+        return super.onUnbind(intent);
+
+    }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 公共方法
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,7 +185,7 @@ public class VideoAccessibilityService extends AccessibilityService {
      * 辅助功能是否启动
      */
     public static boolean isStart() {
-        return mService != null;
+        return mService != null && isAccessibilitySettingsOn(App.context);
     }
 
     /**
@@ -226,5 +246,44 @@ public class VideoAccessibilityService extends AccessibilityService {
         for (AccessibilityNodeInfo info : listInfo) {
             info.recycle();
         }
+    }
+
+    // To check if service is enabled
+    private static boolean isAccessibilitySettingsOn(Context mContext) {
+        int accessibilityEnabled = 0;
+        final String service = App.context.getPackageName() + "/" + VideoAccessibilityService.class.getCanonicalName();
+        try {
+            accessibilityEnabled = Settings.Secure.getInt(
+                    mContext.getApplicationContext().getContentResolver(),
+                    android.provider.Settings.Secure.ACCESSIBILITY_ENABLED);
+            Log.v("mdq", "accessibilityEnabled = " + accessibilityEnabled);
+        } catch (Settings.SettingNotFoundException e) {
+            Log.e("mdq", "Error finding setting, default accessibility to not found: "
+                    + e.getMessage());
+        }
+        TextUtils.SimpleStringSplitter mStringColonSplitter = new TextUtils.SimpleStringSplitter(':');
+
+        if (accessibilityEnabled == 1) {
+            Log.v("mdq", "***ACCESSIBILITY IS ENABLED*** -----------------");
+            String settingValue = Settings.Secure.getString(
+                    mContext.getApplicationContext().getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (settingValue != null) {
+                mStringColonSplitter.setString(settingValue);
+                while (mStringColonSplitter.hasNext()) {
+                    String accessibilityService = mStringColonSplitter.next();
+
+                    Log.v("mdq", "-------------- > accessibilityService :: " + accessibilityService + " " + service);
+                    if (accessibilityService.equalsIgnoreCase(service)) {
+                        Log.v("mdq", "We've found the correct setting - accessibility is switched on!");
+                        return true;
+                    }
+                }
+            }
+        } else {
+            Log.v("mdq", "***ACCESSIBILITY IS DISABLED***");
+        }
+
+        return false;
     }
 }
