@@ -1,6 +1,7 @@
 package com.madq.autooper.ui.home;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.LayoutInflater;
@@ -13,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
+import com.madq.autooper.BuildConfig;
 import com.madq.autooper.R;
 import com.madq.autooper.service.VideoAccessibilityService;
 
@@ -22,12 +24,14 @@ public class HomeFragment extends Fragment {
 
     private Button button;
     private TextView textView;
+    private TextView tvVersion;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         homeViewModel =
                 ViewModelProviders.of(this).get(HomeViewModel.class);
         View root = inflater.inflate(R.layout.fragment_home, container, false);
+        tvVersion = root.findViewById(R.id.tv_version);
         textView = root.findViewById(R.id.text_home);
         homeViewModel.getText().observe(this, new Observer<String>() {
             @Override
@@ -35,6 +39,8 @@ public class HomeFragment extends Fragment {
                 textView.setText(s);
             }
         });
+
+
         button = root.findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -49,6 +55,8 @@ public class HomeFragment extends Fragment {
                 }
             }
         });
+
+        tvVersion.setText("版本号：" + BuildConfig.VERSION_NAME);
         return root;
     }
 
@@ -61,6 +69,14 @@ public class HomeFragment extends Fragment {
         } else {
             textView.setText("辅助已关闭");
             button.setText("去打开辅助");
+        }
+        checkValid();
+    }
+
+    private void checkValid() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            button.setVisibility(View.INVISIBLE);
+            textView.setText("不支持你手机，用不了用不了");
         }
     }
 }

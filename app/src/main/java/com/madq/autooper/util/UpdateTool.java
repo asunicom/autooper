@@ -51,7 +51,7 @@ public class UpdateTool {
 
                     @Override
                     public void onRequestVersionFailure(String message) {
-
+                        Log.e("mdq", message);
                     }
                 }).setForceRedownload(true)
                 .setDownloadAPKPath(App.context.getExternalFilesDir("download").getAbsolutePath() + "/");
