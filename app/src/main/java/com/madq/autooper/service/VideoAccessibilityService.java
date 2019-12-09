@@ -46,8 +46,20 @@ public class VideoAccessibilityService extends AccessibilityService {
             if (TextUtils.isEmpty(key)) {
                 return false;
             }
+
             List<AccessibilityNodeInfo> list = findViewByIdList(key);
-            return list.size() > 0;
+            if (list != null && list.size() > 0) {
+                return true;
+            }
+            try {
+                AccessibilityNodeInfo rootInfo = getRootInActiveWindow();
+                if (rootInfo == null)
+                    return false;
+                return key.equals(rootInfo.getPackageName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return false;
         }
 
         @Override
@@ -104,6 +116,7 @@ public class VideoAccessibilityService extends AccessibilityService {
             try {
                 kuaishou(event);
                 douyin(event);
+                huoshan(event);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -128,6 +141,17 @@ public class VideoAccessibilityService extends AccessibilityService {
                 }
             }, 1000);
         }
+    }
+
+    private void addTaskByPackageName(String key) {
+        Rect b = new Rect();
+        getRootInActiveWindow().getBoundsInScreen(b);
+        height = b.bottom;
+        width = b.right;
+        Log.e("mdq", "screen" + b.top + "," + b.bottom + "," + b.left + "," + b.right);
+        handler.removeCallbacks(task);
+        task.setKey(key);
+        handler.postDelayed(task, getRandom(8 * 1000, 13 * 1000));
     }
 
     private void addTask(String key) {
@@ -332,10 +356,26 @@ public class VideoAccessibilityService extends AccessibilityService {
     }
 
     private void douyin(AccessibilityEvent event) {
+        String className = (String) event.getClassName();
         String packageName = (String) event.getPackageName();
         if ("com.ss.android.ugc.aweme.lite".equals(packageName)) {
-            addTask("com.ss.android.ugc.aweme.lite:id/wv");
+            if ("android.support.v4.view.ViewPager".equals(className) || "com.ss.android.ugc.aweme.main.MainActivity".equals(className)) {
+                addTaskByPackageName(packageName);
+            }
         }
 
     }
+
+    private void huoshan(AccessibilityEvent event) {
+        String className = (String) event.getClassName();
+        String packageName = (String) event.getPackageName();
+        if ("com.ss.android.ugc.livelite".equals(packageName)) {
+            if ("android.support.v4.view.ViewPager".equals(className) || "com.ss.android.ugc.live.detail.DetailActivity".equals(className)) {
+                addTaskByPackageName(packageName);
+            }
+        }
+
+    }
+
+
 }
