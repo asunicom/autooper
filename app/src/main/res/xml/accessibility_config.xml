@@ -7,4 +7,4 @@
         android:canRetrieveWindowContent="true"
         android:description="@string/accessibility_desc"
         android:notificationTimeout="1000"
-        android:packageNames="com.kuaishou.nebula" />
+        android:packageNames="com.kuaishou.nebula,com.ss.android.ugc.aweme.lite" />

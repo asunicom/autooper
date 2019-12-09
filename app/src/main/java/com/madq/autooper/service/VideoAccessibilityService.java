@@ -21,7 +21,6 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
-
 import com.madq.autooper.App;
 import com.madq.autooper.util.ToastUtil;
 
@@ -32,21 +31,38 @@ public class VideoAccessibilityService extends AccessibilityService {
     int height = 1920;
     int width = 1080;
     Random random = new Random();
-    Runnable runnable = new Runnable() {
+
+    Task task = new Task();
+
+    class Task implements Runnable {
+
+        private String key;
+
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        private boolean hasKey() {
+            if (TextUtils.isEmpty(key)) {
+                return false;
+            }
+            List<AccessibilityNodeInfo> list = findViewByIdList(key);
+            return list.size() > 0;
+        }
+
         @Override
         public void run() {
-            List<AccessibilityNodeInfo> list = findViewByIdList("com.kuaishou.nebula:id/view_pager");
-            if (list.size() == 1) {
+            if (hasKey()) {
                 doing();
             }
         }
-    };
+    }
 
     //初始化
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-        ToastUtil.toast("O(∩_∩)O~~\r\n快手辅助启动了...去打开快手吧");
+        ToastUtil.toast("O(∩_∩)O~~\r\n快手辅助启动了");
         Log.e("madq", "onServiceConnected");
         mService = this;
     }
@@ -77,34 +93,57 @@ public class VideoAccessibilityService extends AccessibilityService {
     //实现辅助功能
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        Log.e("madq", event.getEventType() + "," + event.getClassName());
+        //2048,android.support.v4.view.ViewPager,com.ss.android.ugc.aweme.lite
+        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            Log.e("madq", event.getEventType() + "," + event.getClassName() + "," + event.getPackageName());
+        }
+
         handler.removeCallbacks(toastTask);
         handler.postDelayed(toastTask, 3000);
         if (event != null && (event.getEventType() == AccessibilityEvent.TYPE_VIEW_SCROLLED || event.getEventType() == TYPE_WINDOW_STATE_CHANGED)) {
-
-            List photos = findViewByIdList("com.kuaishou.nebula:id/view_pager_photos");
-            if (photos.size() >= 1) {
-                handler.removeCallbacks(runnable);
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        doing();
-                    }
-                }, 1000);
-            }
-
-            List<AccessibilityNodeInfo> list = findViewByIdList("com.kuaishou.nebula:id/view_pager");
-            if (list.size() == 1) {
-                Rect b = new Rect();
-                getRootInActiveWindow().getBoundsInScreen(b);
-                height = b.bottom;
-                width = b.right;
-                Log.e("mdq", "screen" + b.top + "," + b.bottom + "," + b.left + "," + b.right);
-                handler.removeCallbacks(runnable);
-                handler.postDelayed(runnable, getRandom(8 * 1000, 13 * 1000));
+            try {
+                kuaishou(event);
+                douyin(event);
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }
     }
+
+    private void kuaishou(AccessibilityEvent event) {
+        if ("com.kuaishou.nebula".equals(event.getPackageName())) {
+            List photos = findViewByIdList("com.kuaishou.nebula:id/view_pager_photos");
+            removeTask(photos);
+            addTask("com.kuaishou.nebula:id/view_pager");
+        }
+    }
+
+    private void removeTask(List photos) {
+        if (photos.size() >= 1) {
+            handler.removeCallbacks(task);
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    doing();
+                }
+            }, 1000);
+        }
+    }
+
+    private void addTask(String key) {
+        List<AccessibilityNodeInfo> list = findViewByIdList(key);
+        if (list.size() >= 1) {
+            Rect b = new Rect();
+            getRootInActiveWindow().getBoundsInScreen(b);
+            height = b.bottom;
+            width = b.right;
+            Log.e("mdq", "screen" + b.top + "," + b.bottom + "," + b.left + "," + b.right);
+            handler.removeCallbacks(task);
+            task.setKey(key);
+            handler.postDelayed(task, getRandom(8 * 1000, 13 * 1000));
+        }
+    }
+
 
     private int getRandom(int min, int max) {
 
@@ -131,31 +170,36 @@ public class VideoAccessibilityService extends AccessibilityService {
 
     @TargetApi(Build.VERSION_CODES.N)
     private void doing() {
-        if (!isStart()) {
-            return;
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            ToastUtil.toast("手机不支持");
-            return;
-        }
-        Path path = new Path();
-        path.moveTo(getMiddle(), getBottomY());
-        path.lineTo(getMiddle(), getHeader());
-        Log.e("madq", getMiddle() + "," + getBottomY() + "," + getHeader());
-        final GestureDescription.StrokeDescription sd = new GestureDescription.StrokeDescription(path, 0, getRandom(300, 700));
-        mService.dispatchGesture(new GestureDescription.Builder().addStroke(sd).build(), new AccessibilityService.GestureResultCallback() {
-            @Override
-            public void onCompleted(GestureDescription gestureDescription) {
-                super.onCompleted(gestureDescription);
-                ToastUtil.toast("ok");
+        try {
+            if (!isStart()) {
+                return;
             }
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                ToastUtil.toast("手机不支持");
+                return;
+            }
+            Path path = new Path();
+            path.moveTo(getMiddle(), getBottomY());
+            path.lineTo(getMiddle(), getHeader());
+            Log.e("madq", getMiddle() + "," + getBottomY() + "," + getHeader());
+            final GestureDescription.StrokeDescription sd = new GestureDescription.StrokeDescription(path, 0, getRandom(300, 700));
+            mService.dispatchGesture(new GestureDescription.Builder().addStroke(sd).build(), new AccessibilityService.GestureResultCallback() {
+                @Override
+                public void onCompleted(GestureDescription gestureDescription) {
+                    super.onCompleted(gestureDescription);
+                    ToastUtil.toast("ok");
+                }
 
-            @Override
-            public void onCancelled(GestureDescription gestureDescription) {
-                super.onCancelled(gestureDescription);
-                ToastUtil.toast("error");
-            }
-        }, null);
+                @Override
+                public void onCancelled(GestureDescription gestureDescription) {
+                    super.onCancelled(gestureDescription);
+                    ToastUtil.toast("error");
+                }
+            }, null);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            ToastUtil.toast("发生错误了");
+        }
     }
 
     @Override
@@ -285,5 +329,13 @@ public class VideoAccessibilityService extends AccessibilityService {
         }
 
         return false;
+    }
+
+    private void douyin(AccessibilityEvent event) {
+        String packageName = (String) event.getPackageName();
+        if ("com.ss.android.ugc.aweme.lite".equals(packageName)) {
+            addTask("com.ss.android.ugc.aweme.lite:id/wv");
+        }
+
     }
 }

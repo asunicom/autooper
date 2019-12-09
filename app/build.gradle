@@ -7,8 +7,8 @@ android {
         applicationId "com.madq.autooper"
         minSdkVersion 21
         targetSdkVersion 29
-        versionCode 3
-        versionName "1.3"
+        versionCode 201912091
+        versionName "1.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {

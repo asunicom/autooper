@@ -3,5 +3,5 @@
     <string name="title_home">功能</string>
     <string name="title_dashboard">分享</string>
     <string name="title_notifications">帮助</string>
-    <string name="accessibility_desc">这是用来自动刷视频，得金币的工具，放心打开吧</string>
+    <string name="accessibility_desc">这是用来自动刷视频，得金币的工具，放心打开吧\n当前支持:抖音极速版,火山极速版</string>
 </resources>
